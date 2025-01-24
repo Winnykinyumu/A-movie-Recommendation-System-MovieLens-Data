@@ -3,11 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import itertools
-from sklearn.preprocessing import StandardScaler
 from surprise.model_selection import cross_validate,GridSearchCV
 from surprise.prediction_algorithms import KNNWithMeans, KNNBasic, KNNBaseline,SVD
-from sklearn.neighbors import KNeighborsClassifier
 from scipy.stats import f_oneway
 import nltk
 from nltk.tokenize import word_tokenize
@@ -19,8 +16,6 @@ from surprise import SVD,Reader, Dataset
 from surprise.prediction_algorithms.knns import KNNBasic
 import warnings
 warnings.filterwarnings("ignore")
-import string
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 # Download necessary NLTK resources
@@ -142,7 +137,7 @@ def create_sparsitymatrix(df):
 
 
 
-current_user_id = 900  # Initialize global user ID
+current_user_id = 4000  # Initialize global user ID
 
 def movie_rater(movie_df):
     global current_user_id  # Access the global variable
@@ -184,7 +179,7 @@ def movie_rater(movie_df):
 
 
 
-def recommend_movies(user_ratings, movie_df, svd, genre=None, num_recommendations=5):
+def recommend_movies(user_ratings, movie_df, rating_df, svd, genre=None, num_recommendations=5):
     """
     Recommends movies for a user based on the movies they have rated.
 
@@ -228,7 +223,7 @@ def recommend_movies(user_ratings, movie_df, svd, genre=None, num_recommendation
     if genre:
         genre = genre.lower()
         # Ensure the genre is part of any of the movie's genres (case-insensitive)
-        unrated_movies = unrated_movies[unrated_movies['genres'].str.contains(genre, na=False, case=False)]
+        unrated_movies = unrated_movies[unrated_movies['genres'].str.lower() == genre.lower()]
 
     # Predict ratings for unrated movies
     unrated_movies['predicted_rating'] = unrated_movies['movieId'].apply(
@@ -253,50 +248,60 @@ def recommend_movies(user_ratings, movie_df, svd, genre=None, num_recommendation
 
 
 
-def get_hybrid_recommendations(user_ratings, movie_df, svd, num_recommendations=5, alpha=0.7):
+def get_hybrid_recommendations(user_ratings, movie_df, rating_df, svd, num_recommendations=5, alpha=0.7):
     """
     Generate hybrid recommendations using collaborative filtering and content-based filtering.
 
     Parameters:
     - user_ratings: List of dictionaries with keys 'userId', 'movieId', and 'rating'.
-    - movie_df: DataFrame containing movie details with columns 'movieId', 'title', and 'genres'.
+    - movie_df: DataFrame containing movie details with exploded 'genres' column.
+    - rating_df: Original dataset containing user ratings.
     - svd: Trained SVD model for collaborative filtering.
-     num_recommendations: Number of movies to recommend (default is 5).
+    - num_recommendations: Number of movies to recommend (default is 5).
     - alpha: Weight for collaborative filtering in the hybrid recommendation (default is 0.7).
 
     Returns:
     - DataFrame with hybrid recommended movies and their details.
     """
     # Collaborative filtering scores
-    recommendations = recommend_movies(user_ratings, movie_df, svd, num_recommendations=None)
-    
-    # Ensure movieId column exists in recommendations
+    recommendations = recommend_movies(user_ratings, movie_df, rating_df, svd, num_recommendations=None)
     collaborative_scores = recommendations[['movieId', 'predicted_rating']].drop_duplicates('movieId')
-    
-    # Merge collaborative scores into the movie_df
-    movie_df = movie_df.merge(collaborative_scores, on='movieId', how='left', suffixes=('', '_collab'))
-    movie_df['collaborative_scores'] = movie_df['predicted_rating'].fillna(0)
-    
-    
-   # Content-based filtering
+
+    # Aggregate genres back for content-based filtering
+    grouped_movie_df = movie_df.groupby('movieId').agg({
+        'title': 'first',
+        'genres': lambda x: list(x)
+    }).reset_index()
+
+    # Merge collaborative scores into grouped_movie_df
+    grouped_movie_df = grouped_movie_df.merge(collaborative_scores, on='movieId', how='left')
+    grouped_movie_df['collaborative_scores'] = grouped_movie_df['predicted_rating'].fillna(0)
+
+    # Content-based filtering
     from sklearn.metrics.pairwise import cosine_similarity
     from sklearn.preprocessing import MultiLabelBinarizer
 
     # Prepare genre encoding
     mlb = MultiLabelBinarizer()
-    movie_df['genres'] = movie_df['genres'].fillna('')  # Handle missing genres
-    genre_encoded = mlb.fit_transform(movie_df['genres'])
+    grouped_movie_df['genres'] = grouped_movie_df['genres'].fillna('')
+    genre_encoded = mlb.fit_transform(grouped_movie_df['genres'])
     genre_similarity = cosine_similarity(genre_encoded)
-    
+
     # Calculate content-based scores
-    content_based_scores = genre_similarity.mean(axis=0)
-    movie_df['content_based_scores'] = content_based_scores
+    grouped_movie_df['content_based_scores'] = genre_similarity.mean(axis=0)
 
     # Hybrid scores
-    movie_df['hybrid_scores'] = alpha * movie_df['collaborative_scores'] + (1 - alpha) * movie_df['content_based_scores']
-    
+    grouped_movie_df['hybrid_scores'] = (
+        alpha * grouped_movie_df['collaborative_scores'] + 
+        (1 - alpha) * grouped_movie_df['content_based_scores']
+    )
+
     # Get top recommendations based on hybrid scores
-    top_recommendations = movie_df.sort_values(by='hybrid_scores', ascending=False).drop_duplicates('movieId').head(num_recommendations)
+    top_recommendations = (
+        grouped_movie_df.sort_values(by='hybrid_scores', ascending=False)
+        .drop_duplicates('movieId')
+        .head(num_recommendations)
+    )
 
     return top_recommendations[['title', 'genres', 'hybrid_scores']]
 
