@@ -1,26 +1,28 @@
-<img src="\movie-rec.jpg" alt="box office Image" style="width:11500px;height:400px;">
-
-
-## PROJECT TITLE:
+# PROJECT TITLE:
 ***
 
 A MOVIE RECOMMENDATION SYSTEM USING MOVIELENS DATA
 
-# Project overview
+<img src="\movie-rec.jpg" alt="box office Image" style="width:11500px;height:400px;">
+
+
+# PROJECT OVERVIEW
 MovieLens Recommendation System
+
 This project leverages the MovieLens dataset to build a robust movie recommendation system. It combines collaborative filtering, content-based filtering, and a hybrid recommendation approach to suggest personalized movie recommendations to users based on their past ratings and preferences.
 
-# Project Description
+# PROJECT DESCRIPTION
 The MovieLens Recommendation System is a data-driven application that helps users discover movies they might enjoy. The project follows a structured workflow starting with data cleaning, data exploration, followed by modeling, findings, conclusions, recommendations and future steps.
 
-# Dataset Overview
+# DATASET OVERVIEW
 The project utilizes the MovieLens dataset, which includes:
 
 **User Ratings:** User-provided ratings for various movies.
+
 **Movie Details:** Metadata about movies, including titles, genres, and identifiers.
 The dataset was preprocessed to address missing values, duplicates, and inconsistencies. The genres column, which contains multiple genres per movie, was exploded to create individual rows for each genre for more detailed content-based filtering.
 
-# Exploratory Data Analysis (EDA)
+# EXPLORATORY DATA ANALYSIS (EDA)
 EDA was conducted to:
 
 Understand the distribution of user ratings and movie popularity.
@@ -28,7 +30,7 @@ Analyze the genre-wise rating trends and correlations.
 Explore user behaviors, such as rating patterns and preferences.
 Visualizations were generated to uncover insights into the dataset and inform the recommendation strategies.
 
-# Recommendation Strategies
+# RECOMMENDATION STRATEGIES
 **Collaborative Filtering (CF):**
 A model-based approach leveraging Singular Value Decomposition (SVD) to predict user preferences.
 It analyzes patterns in user-movie interactions, identifying movies a user is likely to enjoy based on ratings from similar users or movies.
@@ -44,30 +46,24 @@ Combines the strengths of Collaborative Filtering and Content-Based Filtering to
 Hybrid scores are calculated using a weighted average of CF and CBF scores, with a tunable parameter alpha to control the weight (default: 0.7 for CF and 0.3 for CBF).
 This approach balances personalization with content relevance, resulting in recommendations that align with both user preferences and movie characteristics.
 
-**Key Features**
+**Key Features:**
 Personalized movie recommendations tailored to user ratings.
 Option to filter recommendations by genre.
 Dynamic model retraining for updated recommendations when new user data is added.
 An intuitive hybrid scoring mechanism combining collaborative and content-based filtering.
 
-# Installation and Usage
+# INSTALLATION AND USAGE
 Clone the repository.
 Install the required Python libraries using:
 pip install -r requirements.txt or install the libraries listed below.
-Run the Jupyter notebooks or Python scripts for:
+Run the Jupyter notebooks and Python scripts for:
 Exploratory Data Analysis (EDA)
 Model training and evaluation
 Generating movie recommendations
 
-# Future Enhancements
-Incorporate temporal data, such as release dates, for time-aware recommendations.
-Explore advanced models like neural collaborative filtering.
-Extend the system to handle multi-user recommendations in real-time.
-
 ## TOOLS AND TECHNOLOGIES USED:
 ***
-
-# Standard Data Science packages: 
+**Standard Data Science packages:** 
 #Importing the necessary libaries
 import pandas as pd
 import numpy as np
